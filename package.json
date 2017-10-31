@@ -1,0 +1,22 @@
+{
+  "name": "backoff.js",
+  "version": "1.0.0",
+  "description": "Fibonacci, exponential and fixed backoffs for Node.js.",
+  "main": "index.js",
+ "keywords": ["backoff", "retry", "fixed" "fibonacci", "exponential"],
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^3.3.0",
+    "mockery": "^1.4.0",
+    "sinon": "^1.17.1"
+  },
+  "scripts": {
+    "test": "mocha tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NassiHarel/backoff.js.git"
+  },
+  "author": "Nassi Harel",
+  "license": "MIT"
+}
