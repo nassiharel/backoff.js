@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Fibonacci, exponential and fixed backoffs for Node.js.",
   "main": "index.js",
- "keywords": ["backoff", "retry", "fixed" "fibonacci", "exponential"],
+ "keywords": ["backoff", "retry", "fixed", "fibonacci", "exponential"],
   "dependencies": {},
   "devDependencies": {
     "chai": "^3.3.0",
