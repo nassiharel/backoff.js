@@ -5,11 +5,12 @@
   "main": "index.js",
   "keywords": [
     "backoff",
-    "retry",
+    "strategy",
     "fixed",
+    "linear",
     "fibonacci",
     "exponential",
-    "strategy"
+    "retry"
   ],
   "dependencies": {},
   "devDependencies": {

@@ -1,7 +1,7 @@
 
 # Backoff for Node.js
 
-Fibonacci, exponential and fixed backoffs for Node.js.
+Fibonacci, exponential, fixed and linear backoffs for Node.js.
 
 ## Installation
 
@@ -17,7 +17,7 @@ Fibonacci, exponential and fixed backoffs for Node.js.
 ```js
 
 let backoff = new Backoff({
-    strategy: 'fixed', // fixed/expo/fibo
+    strategy: 'fixed', // fixed/expo/fibo/linear
     delay: 100,
     maxAttempts: 3
 });
