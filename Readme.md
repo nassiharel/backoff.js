@@ -10,7 +10,7 @@ Fibonacci, exponential and fixed backoffs for Node.js.
 ## Features
 
   * Fibonacci and exponential backoffs for Node.js.
-  * Runs promise or callback functions
+  * Runs promise/callback/sync functions
 
 ## Viewing Examples
 
@@ -25,7 +25,7 @@ backoff.on('retry', (error, data) => {
     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
 });
 let options = {
-    type: 'promise',  // promise/callback
+    type: 'promise',  // promise/callback/sync
     func: promiseFunction,
     args: { data: 'test' }
 };
