@@ -25,7 +25,7 @@ backoff.on('retry', (error, data) => {
     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
 });
 let options = {
-    type: 'promise',
+    type: 'promise',  // promise/callback
     func: promiseFunction,
     args: { data: 'test' }
 };
