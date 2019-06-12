@@ -4,138 +4,70 @@
 
 'use strict';
 
-var chai = require("chai");
-var expect = chai.expect;
-var sinon = require('sinon');
-var mockery = require('mockery');
-var Backoff = require('./lib/backoff');
-var count1 = 0;
-var count2 = 0;
-var count3 = 0;
-const RETRIES = 30;
+const { expect } = require("chai");
+const Backoff = require('./lib/backoff');
+const util = require('util');
 
-function testCallback(param, callback) {
+function testCallbackSuccess(param, callback) {
     setTimeout(() => {
-        if (count1++ < RETRIES) {
-            return callback(new Error('Callback Error'))
-        }
-        return callback(null, param)
-    }, 200)
+        return callback(null, true)
+    }, 0)
 }
 
-function testPromise(param) {
+function testCallbackError(param, callback) {
+    setTimeout(() => {
+        return callback(new Error('Callback Error'))
+    }, 0)
+}
+
+function testPromiseSuccess(param) {
     return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (count2++ < RETRIES) {
-                return reject(new Error('Promise Error'))
-            }
-            return resolve(param)
-        }, 200)
+        return resolve(true)
     });
 }
 
-function testNoPromise(param) {
-    if (count3++ < RETRIES) {
-        throw new Error('Sync Error');
-    }
+function testPromiseError(param) {
+    return new Promise((resolve, reject) => {
+        return reject(new Error('Promise Error'))
+    });
+}
+
+function testSyncSuccess(param) {
     return true;
 }
 
-function testSync(param) {
-    if (count3++ < RETRIES) {
-        throw new Error('Sync Error');
-    }
-    return true;
+function testSyncError(param) {
+    throw new Error('Sync Error');
 }
+
+testCallbackSuccess = util.promisify(testCallbackSuccess);
+testCallbackError = util.promisify(testCallbackError);
 
 describe('Backoff', function () {
-
-    before(function (done) {
-        mockery.enable({
-            useCleanCache: false,
-            warnOnReplace: true,
-            warnOnUnregistered: false
-        });
-        done()
-    });
-    after(function (done) {
-        mockery.deregisterAll();
-        mockery.disable(); // Disable Mockery after tests are completed
-        done()
-    });
-
     describe('Actions', function () {
         describe('Validation', function () {
             it('should success to run backoff with no args', function (done) {
+                this.timeout(20000);
                 let backoff = new Backoff({
                     strategy: 'fixed',
-                    delay: 100,
+                    delay: 0,
                     maxAttempts: 3
                 });
                 backoff.on('retry', (error, data) => {
                     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
                 });
-                let options = {
-                    type: 'callback',
-                    func: testCallback
-                };
-                backoff.run(options).catch((err) => {
+                backoff.on('failed', (error) => {
+                    console.log(`retry -> error: ${error.message}`);
+                });
+                backoff.run(testCallbackError).catch((err) => {
                     expect(err.message).to.equal('Callback Error');
-                    done();
-                });
-            });
-            it('should failed when options.args is not array', function (done) {
-                let backoff = new Backoff({
-                    strategy: 'fixed',
-                    delay: 100,
-                    maxAttempts: 3
-                });
-                backoff.on('retry', (error, data) => {
-                    console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
-                });
-                let options = {
-                    type: 'callback',
-                    func: testCallback,
-                    args: {}
-                };
-                backoff.run(options).catch((err) => {
-                    expect(err.message).to.equal('args must be from type array');
-                    done();
-                });
-            });
-            it('should failed when options.type is invalid', function (done) {
-                let backoff = new Backoff();
-                let options = {
-                    type: 'no_such',
-                    func: testCallback,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
-                    expect(err.message).to.equal('type must be provided (promise,callback,sync)');
                     done();
                 });
             });
             it('should failed when options.func is not a function', function (done) {
                 let backoff = new Backoff();
-                let options = {
-                    type: 'no_such',
-                    func: [32],
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
+                backoff.run([32], ['test']).catch((err) => {
                     expect(err.message).to.equal('func must be from type function');
-                    done();
-                });
-            });
-            it('should failed when options.func is not a promise', function (done) {
-                let backoff = new Backoff();
-                let options = {
-                    type: 'promise',
-                    func: testNoPromise,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
-                    expect(err.message).to.equal('func must be from type promise');
                     done();
                 });
             });
@@ -187,21 +119,6 @@ describe('Backoff', function () {
             });
         });
         describe('Callback', function () {
-            it('should failed to run backoff', function (done) {
-                let backoff = new Backoff();
-                backoff.on('retry', (error, data) => {
-                    console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
-                });
-                let options = {
-                    type: 'no_such',
-                    func: testCallback,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
-                    expect(err.message).to.equal('type must be provided (promise,callback,sync)');
-                    done();
-                });
-            });
             it('should success to run backoff', function (done) {
                 let backoff = new Backoff({
                     strategy: 'fixed',
@@ -211,19 +128,25 @@ describe('Backoff', function () {
                 backoff.on('retry', (error, data) => {
                     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}`);
                 });
-                let options = {
-                    type: 'callback',
-                    func: testCallback,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
+                backoff.run(testCallbackError, 'test').catch((err) => {
                     expect(err.message).to.equal('Callback Error');
+                    done();
+                });
+            });
+            it('should success to run backoff', function (done) {
+                let backoff = new Backoff();
+                backoff.on('retry', (error, data) => {
+                    console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}`);
+                });
+                backoff.run(testCallbackSuccess, 'test').then((response) => {
+                    expect(response).to.be.true;
                     done();
                 });
             });
         });
         describe('Promise', function () {
             it('should success to run backoff', function (done) {
+                this.timeout(20000);
                 let backoff = new Backoff({
                     strategy: 'fixed',
                     delay: 100,
@@ -232,13 +155,18 @@ describe('Backoff', function () {
                 backoff.on('retry', (error, data) => {
                     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
                 });
-                let options = {
-                    type: 'promise',
-                    func: testPromise,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
+                backoff.run(testPromiseError, 'test').catch((err) => {
                     expect(err.message).to.equal('Promise Error');
+                    done();
+                });
+            });
+            it('should success to run backoff', function (done) {
+                let backoff = new Backoff();
+                backoff.on('retry', (error, data) => {
+                    console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
+                });
+                backoff.run(testPromiseSuccess, 'test').then((response) => {
+                    expect(response).to.be.true;
                     done();
                 });
             });
@@ -253,13 +181,18 @@ describe('Backoff', function () {
                 backoff.on('retry', (error, data) => {
                     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
                 });
-                let options = {
-                    type: 'sync',
-                    func: testSync,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
+                backoff.run(testSyncError, 'test').catch((err) => {
                     expect(err.message).to.equal('Sync Error');
+                    done();
+                });
+            });
+            it('should success to run backoff', function (done) {
+                let backoff = new Backoff();
+                backoff.on('retry', (error, data) => {
+                    console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
+                });
+                backoff.run(testSyncSuccess, 'test').then((response) => {
+                    expect(response).to.be.true;
                     done();
                 });
             });
@@ -276,12 +209,7 @@ describe('Backoff', function () {
                 backoff.on('retry', (error, data) => {
                     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
                 });
-                let options = {
-                    type: 'callback',
-                    func: testCallback,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
+                backoff.run(testCallbackError, 'test').catch((err) => {
                     expect(err.message).to.equal('Callback Error');
                     done();
                 });
@@ -297,12 +225,7 @@ describe('Backoff', function () {
                 backoff.on('retry', (error, data) => {
                     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
                 });
-                let options = {
-                    type: 'callback',
-                    func: testCallback,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
+                backoff.run(testCallbackError, 'test').catch((err) => {
                     expect(err.message).to.equal('Callback Error');
                     done();
                 });
@@ -318,12 +241,7 @@ describe('Backoff', function () {
                 backoff.on('retry', (error, data) => {
                     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
                 });
-                let options = {
-                    type: 'callback',
-                    func: testCallback,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
+                backoff.run(testCallbackError, 'test').catch((err) => {
                     expect(err.message).to.equal('Callback Error');
                     done();
                 });
@@ -339,12 +257,7 @@ describe('Backoff', function () {
                 backoff.on('retry', (error, data) => {
                     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
                 });
-                let options = {
-                    type: 'callback',
-                    func: testCallback,
-                    args: ['test']
-                };
-                backoff.run(options).catch((err) => {
+                backoff.run(testCallbackError, 'test').catch((err) => {
                     expect(err.message).to.equal('Callback Error');
                     done();
                 });

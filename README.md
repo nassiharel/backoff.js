@@ -24,15 +24,17 @@ let backoff = new Backoff({
 backoff.on('retry', (error, data) => {
     console.log(`retry -> strategy: ${data.strategy}, attempt: ${data.attempt}, delay: ${data.delay}, error: ${error.message}`);
 });
-let options = {
-    type: 'promise',  // promise/callback/sync
-    func: promiseFunction,
-    args: { data: 'test' }
-};
-backoff.run(options).then(() => {
-    console.log(`backoff started`);
+backoff.on('failed', (error) => {
+    console.log(`retry -> error: ${error.message}`);
+});
+
+// if your function is callback style, convert it to promise.
+// e.g. util.promisify(func)
+
+backoff.run(promiseFunction, { data: 'test' }).then(() => {
+    console.log(`success`);
 }).catch((err) => {
-    console.log(`backoff failed`);
+    console.log(`failed`);
 });
 
 ```

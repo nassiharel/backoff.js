@@ -15,8 +15,7 @@
   "dependencies": {},
   "devDependencies": {
     "chai": "^3.3.0",
-    "mockery": "^1.4.0",
-    "sinon": "^1.17.1"
+    "mocha": "^6.1.4"
   },
   "scripts": {
     "test": "mocha tests"
