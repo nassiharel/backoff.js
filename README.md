@@ -15,10 +15,11 @@ Fibonacci, exponential, fixed and linear backoffs for Node.js.
 ## Viewing Examples
 
 ```js
+const backoff = require('backoff.js');
 
-let backoff = new Backoff({
+const backoff = new Backoff({
     strategy: 'fixed', // fixed/expo/fibo/linear
-    delay: 100,
+    delay: 100,        // in ms
     maxAttempts: 3
 });
 backoff.on('retry', (error, data) => {
